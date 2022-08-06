@@ -16,7 +16,7 @@ const db=new sqlite3.Database("./student.db",sqlite3.OPEN_READWRITE,(err)=>{
 
 
 
-let token='';
+
 
 app.use(cors());
 
