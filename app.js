@@ -1,13 +1,7 @@
 const express=require("express");
 const app =express();
-const mongoose=require("mongoose");
-const dotenv=require("dotenv");
-dotenv.config();
 const cors=require("cors");
-const mysql=require("mysql2");
-const fast2sms=require("fast-two-sms");
-const schema=require("./schema");
-const { response } = require("express");
+// const mysql=require("mysql2");
 const path=require("path");
 const sqlite3=require("sqlite3").verbose()
 
@@ -21,7 +15,6 @@ const db=new sqlite3.Database("./student.db",sqlite3.OPEN_READWRITE,(err)=>{
 });
 
 
-console.log(schema);
 
 let token='';
 
@@ -65,12 +58,7 @@ app.use((req,res,next)=>{
     }
 });
 
-mongoose.connect(process.env.DB,()=>{
-    // console.log(process.env.DATABASE)
-    console.log("Connection to Database successfull");
-},(err)=>{
-    console.log(err);
-});
+
 
 function generateOTP() {
     // Declare a digits variable 
@@ -83,19 +71,8 @@ function generateOTP() {
     return OTP;
 }
 
-const pool=mysql.createPool({
-    host:String(process.env.DB_HOST),
-    user:String(process.env.DB_USER),
-    database:String(process.env.DB_NAME),
-    password:String(process.env.DB_PASSWORD)
-});
 
 
-let sql="SHOW TABLES;"
-pool.execute(sql,(err,result)=>{
-    console.log(err);
-    console.log(result);
-});
 
 app.use(express.static(path.join("./build")))
 
@@ -103,18 +80,7 @@ app.get("/",(req,res)=>{
    res.sendFile(path.resolve(__dirname,"build","index.html"));
 });
 
-app.post("/auth",(req,res)=>{
-    if(req.body.code=="ritagor121234"){
-        token=CsrfToken(24)
-        res.send({
-            state:"s",
-            token:token
-        });
-    }
-    else{
-        res.send("u");
-    }
-});
+
 
 
 app.use((req,res,next)=>{
@@ -130,23 +96,15 @@ app.use((req,res,next)=>{
 
 app.post("/add_student", (req,res)=>{
     let d=new Date;
+    console.log("Adddd   ");
     // console.log(String(d.getFullYear())+"-"+String(d.getMonth()+1)+"-"+String(d.getDate()));
     let a=String(d.getFullYear())+"-"+String(d.getMonth()+1)+"-"+String(d.getDate());
 
-    console.log(req.body);
+    console.log("Body:",req.body);
      db.run(`INSERT INTO student(
-         student_id,
-         firstname,
-         lastname,
-         std,
-         school_name,
-         mother_name,
-         father_name,
-         contact,
-         joining_date,
-        fees
+        student_id, firstname, lastname, std, school_name, mother_name, father_name,contact, joining_date, fees 
      ) VALUES(
-        ${generateOTP()},
+        '${generateOTP()}',
         '${req.body.firstname}',
         '${req.body.lastname}',
         '${req.body.std}',
@@ -158,18 +116,10 @@ app.post("/add_student", (req,res)=>{
         '${req.body.fees}'
     );`,async (err,result)=>{
         if(err){
-            console.log(err);
-
-            // Saved for Later Try  
-            // let x=await fast2sms.sendMessage({
-            //     authorization:process.env.API_KEY,
-            //     message:`Thank you, ${req.body.firstname} ${req.body.lastname} for Joining Maharaja tutions `,
-            //     numbers:["9819510933"]
-            // })
-            // console.log(x);
+            console.log("Error: ",err);
 
            
-            console.log(err);
+            console.log("Result",result);
             res.send("u")
         }
         else{
@@ -287,78 +237,15 @@ app.post("/delete_fees",(req,res)=>{
 });
 
 
-app.listen(process.env.PORT,()=>{
-    console.log(`Listening on Port ${process.env.PORT}`);
+app.get("*",(req,res)=>{
+    res.redirect("http://localhost:5000/")
+})
+
+app.listen(5000,()=>{
+    console.log(`Listening on Port 5000`);
 });
 
 
 
 
-setInterval(()=>{
-    // Backup data to mongoDB cluster 
-    db.all("SELECT * FROM student;",[],(err,result)=>{
-        if(err){
-            console.log(err);
-        }
-        else{
-            console.log(result[2]);
-            db.all("SELECT * FROM student;",[],(err,result)=>{
-                let date=new Date();
-                if(err){
-                    console.log(err);
-                }
-                else{
-                    schema.find({}, async(err,response)=>{
-                        if(response.length==0){
-                            console.log("lenght: ",response.length);
-                        }
-                        else{
-                            schema.deleteMany({},(err,result2)=>{
-                                if(err){
-                                    console.log("Error:",err);
-                                }
-                                else{
-                                    console.log("result:",result);
-                                    for(let i=0;i<result.length;i++){
-                                        let a =result[i];
-                                        schema.create({
-                                            time:String(new Date()),
-                                            data:{
-                                                student_id:a.student_id,
-                                                firstname:a.firstname,
-                                                lastname:a.lastname,
-                                                std:a.std,
-                                                school_name:a.school_name,
-                                                mother_name:a.mother_name,
-                                                father_name:a.father_name,
-                                                contact:a.contact,
-                                                joining_date:a.joining_date,
-                                                fees:a.fees,
-                                                june:a.june,
-                                                july:a.july,
-                                                august:a.august,
-                                                september:a.september,
-                                                october:a.october,
-                                                november:a.november,
-                                                december:a.december,
-                                                january:a.january,
-                                                february:a.february,
-                                                march:a.march,
-                                                april:a.april,
-                                                may:a.may
-                                            }
-                                        });
-                                    }
-                                    console.log(result[0].july);
-            
-                                }
-                            })
-            
-                        }
-                    })
-                }
-            });
-        }
-    })
-},1000*60*60*24);
 
